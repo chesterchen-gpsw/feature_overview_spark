@@ -46,12 +46,6 @@ class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
   }
 
 
-  private def persistProto(proto: DatasetFeatureStatisticsList, encode: Boolean = false) {
-    val filename = "stats.txt"
-    val file = new File(filename)
-    persistProto(proto, encode, file)
-  }
-
   private def persistProto(proto: DatasetFeatureStatisticsList, base64Encode: Boolean, file: File ):Unit = {
     if (base64Encode) {
       import java.util.Base64
@@ -310,8 +304,8 @@ class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
                          "Occupation", "Relationship", "Race", "Sex", "Capital Gain", "Capital Loss",
                          "Hours per week", "Country", "Target")
 
-    val trainData: DataFrame = loadCSVFile("/Users/chesterchen/Downloads/adult.data.csv")
-    val testData = loadCSVFile("/Users/chesterchen/Downloads/adult.test.txt")
+    val trainData: DataFrame = loadCSVFile("src/test/resources/data/adult.data.csv")
+    val testData = loadCSVFile("src/test/resources/data/adult.test.txt")
 
     val train = trainData.toDF(features: _*)
     val test = testData.toDF(features: _*)
@@ -320,7 +314,8 @@ class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
       NamedDataFrame(name = "test", test))
 
     val proto = generator.protoFromDataFrames(dataframes)
-    persistProto(proto)
+    persistProto(proto,base64Encode = false, new File("src/test/resources/data/stats.pb"))
+    persistProto(proto,base64Encode = true, new File("src/test/resources/data/stats.txt"))
   }
 
   private def loadCSVFile(filePath: String) : DataFrame = {
