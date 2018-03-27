@@ -311,7 +311,7 @@ class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
     val test = testData.toDF(features: _*)
 
     val dataframes = List(NamedDataFrame(name = "train", train),
-      NamedDataFrame(name = "test", test))
+                          NamedDataFrame(name = "test", test))
 
     val proto = generator.protoFromDataFrames(dataframes)
     persistProto(proto,base64Encode = false, new File("src/test/resources/data/stats.pb"))

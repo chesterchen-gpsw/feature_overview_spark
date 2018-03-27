@@ -129,25 +129,27 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
 
 ```
 
+ 
+
   test("integration") {
     val features = Array("Age", "Workclass", "fnlwgt", "Education", "Education-Num", "Marital Status",
                          "Occupation", "Relationship", "Race", "Sex", "Capital Gain", "Capital Loss",
                          "Hours per week", "Country", "Target")
 
-    val trainData: DataFrame = loadCSVFile("/Users/chesterchen/Downloads/adult.data.csv")
-    val testData = loadCSVFile("/Users/chesterchen/Downloads/adult.test.txt")
+    val trainData: DataFrame = loadCSVFile("src/test/resources/data/adult.data.csv")
+    val testData = loadCSVFile("src/test/resources/data/adult.test.txt")
 
     val train = trainData.toDF(features: _*)
     val test = testData.toDF(features: _*)
 
-    val dataframes = List(NamedDataFrame(name = "train", train),
-      NamedDataFrame(name = "test", test))
+    val dataframes = List(NamedDataFrame(name = "train", train), 
+                          NamedDataFrame(name = "test", test))
 
     val proto = generator.protoFromDataFrames(dataframes)
-    
-    persistProto(proto, base64Encode = false,  new File("stats.pb"))
+    persistProto(proto,base64Encode = false, new File("src/test/resources/data/stats.pb"))
+    persistProto(proto,base64Encode = true, new File("src/test/resources/data/stats.txt"))
   }
-
+  
   private def loadCSVFile(filePath: String) : DataFrame = {
     val spark = sqlContext.sparkSession
     spark.read
