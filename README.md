@@ -1,4 +1,4 @@
 # feature_overview_spark
 
-[a relative link](feature_overview_spark/README.MD)
+[README.MD](feature_overview_spark/README.MD)
 
