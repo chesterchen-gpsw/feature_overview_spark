@@ -7,7 +7,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions.{col, udf}
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{Column, DataFrame}
+import org.apache.spark.sql.{Column, DataFrame, Row}
 
 import scala.collection.mutable
 
@@ -122,7 +122,7 @@ object FeatureStatsGenerator {
 
     val value = x.toString.toDouble
 
-    val (isNan, isPosInfi, isNegInfi, isZero) =
+    val (isNan, isPosInfi, isNegInfi, isZero) = {
       if (value.isNaN) {
         (1, 0, 0, 0)
       }
@@ -140,13 +140,17 @@ object FeatureStatsGenerator {
           (0,0,0,0)
         }
       }
+    }
 
     NonZeroInfinite(isNan = isNan, isZero = isZero, isPosInfinite = isPosInfi, isNegInfinite = isNegInfi)
   }
   private[features]  def convertDate2Long(value : Any) : Long = {
     value match {
       case t:java.util.Date => t.getTime
-      case _ => value.toString.toLong
+      case _ => if  (value == null) 0 else {
+        val x = value.toString.trim
+        if (x.isEmpty) 0 else x.toLong
+      }
     }
   }
   private[features]  def convertDateToLong: UserDefinedFunction = udf((value:Any) => convertDate2Long(value))
@@ -286,16 +290,17 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
         val colName = f.name
         val protoTypeName = convertDataType(f.dataType.typeName)
         val convertedDF = convertToNumberDataFrame(df.select(f.name))
-        //Remove all None and nan values and count how many were removed.
-        val filterFlattenedDF = convertedDF.filter(!convertedDF(colName).isNaN)
-        val missingCount = origSize - filterFlattenedDF.count()
+        //Remove all null and nan values and count how many were removed.
+        //also remove "NaN" strings
+        val filteredFlattenedDF = convertedDF.na.drop().filter(!convertedDF(colName).isNaN)
+        val missingCount = origSize - filteredFlattenedDF.count()
 
         val featureDF = df.select(f.name)
         //get RowCount DataFrame
         val rowCountDF = toRowCountDF(featureDF)
         DataEntry(featureName=f.name,//todo:fixme,flatten column name maybe different from feature name
                   `type` = protoTypeName,
-                  values = filterFlattenedDF,
+                  values = filteredFlattenedDF,
                   counts = rowCountDF,
                   missing = missingCount)
       }
@@ -476,15 +481,17 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
                        .toDF("colName", "nanCount", "count")
 
     val countsDF = aggDF.select($"nanCount", $"count")
-    val result = countsDF.collect
+    val result : Array[Row]= countsDF.collect
 
+    val indexedColNames : Array[(String, Int)]= countsDF.schema.fieldNames.zipWithIndex
 
-    val indexedColNames = countsDF.schema.fieldNames.zipWithIndex
-    val extraCounts = result.flatMap(row => indexedColNames.map(f => f._1 -> row.getAs[Long](f._2))).toMap
-    val stats = BasicStringStats(colName,numCount = extraCounts("count"), numNan = extraCounts("nanCount"))
+    val extraCounts : Map[String, Long] = result.flatMap(row => indexedColNames.map(f => f._1 -> row.getAs[Long](f._2)))
+                                                .toMap
 
-    stats
+    val numCount = if (extraCounts.isEmpty) 0 else extraCounts("count")
+    val numNan   = if (extraCounts.isEmpty) 0 else extraCounts("nanCount")
 
+    BasicStringStats(colName,numCount = numCount, numNan = numNan)
   }
 
   private[features] def updateStdHistogramBucket(colName: String,
@@ -580,7 +587,12 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     val commonStats:CommonStatistics  = getCommonStats(dsSize, entry, basicStats.numNan,dsIndex)
 
     val colDF : DataFrame  = valueDF.select(featureName)
-    val avgLen  : Double   = colDF.rdd.map(_.getAs[String](0).length).mean()
+    val avgLen  : Double   = colDF.rdd.map{a =>
+                                            val s = a.getAs[String](0)
+                                            if (s == null || s.isEmpty) 0 else s.length
+                                          }
+                                      .mean()
+
     val distinctCount = colDF.rdd.distinct.count()
     val ranksRdd = colDF.rdd.mapPartitions(it => it.map(r => (r.getAs[String](0),1L)))
                                                    .reduceByKey(_+_)
@@ -669,7 +681,7 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
         columnDF
     }
 
-    df.show()
+    //df.show(2)
     df
 
   }

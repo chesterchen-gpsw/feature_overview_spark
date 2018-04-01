@@ -116,8 +116,8 @@ class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
     val spark = sqlContext.sparkSession
     import spark.implicits._
 
-    var arr1 = Seq[Double] (1.0, 2.0, Double.NaN, Double.NaN, 3.0)
-    var df = sc.parallelize(arr1).toDF("TestFeatureInt")
+    var arr1 = Seq[Double] (1.0, 2.0, Double.NaN, Double.NaN, 3.0, null.asInstanceOf[Double])
+    var df = sc.parallelize(arr1).toDF("TestFeatureDouble")
 
     var dataframes = List(NamedDataFrame(name = "testDataSet1", df))
     var dataset:DataEntrySet = generator.toDataEntries(dataframes).head
@@ -125,13 +125,13 @@ class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
 
     assert(2 === entry.missing)
 
-    val arr2 = Seq[String] ("a","b", Float.NaN.toString, "c")
+    val arr2 = Seq[String] ("a","b", Float.NaN.toString, "c", null.asInstanceOf[String])
     df = sc.parallelize(arr2).toDF("TestFeatureStr")
     dataframes = List(NamedDataFrame(name = "testDataSet2", df))
     dataset   = generator.toDataEntries(dataframes).head
     entry = dataset.entries.head
 
-    assert(1 === entry.missing)
+    assert(2 === entry.missing)
 
   }
   test ("convertTimeTypes") {
