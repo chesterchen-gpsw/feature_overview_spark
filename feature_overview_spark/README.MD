@@ -132,6 +132,7 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
  
 
   test("integration") {
+  
     val features = Array("Age", "Workclass", "fnlwgt", "Education", "Education-Num", "Marital Status",
                          "Occupation", "Relationship", "Race", "Sex", "Capital Gain", "Capital Loss",
                          "Hours per week", "Country", "Target")
@@ -145,6 +146,9 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     val dataframes = List(NamedDataFrame(name = "train", train), 
                           NamedDataFrame(name = "test", test))
 
+
+    val generator = new FeatureStatsGenerator(DatasetFeatureStatisticsList())
+    
     val proto = generator.protoFromDataFrames(dataframes)
     persistProto(proto,base64Encode = false, new File("src/test/resources/data/stats.pb"))
     persistProto(proto,base64Encode = true, new File("src/test/resources/data/stats.txt"))
