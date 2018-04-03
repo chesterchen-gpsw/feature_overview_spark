@@ -178,10 +178,8 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
                           features : Set[String] = Set.empty[String],
                           histgmCatLevelsCount:Option[Int]=None): DatasetFeatureStatisticsList = {
 
-    //todo: need to convert Date/Calendar to long first.
     val datasets: List[DataEntrySet] = toDataEntries( dataFrames)
-    val protos = genDatasetFeatureStats(datasets, features, histgmCatLevelsCount)
-    protos
+    genDatasetFeatureStats(datasets, features, histgmCatLevelsCount)
 
   }
 
@@ -281,6 +279,8 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
 
   private[features] def toDataEntries(dataFrames: List[NamedDataFrame]) : List[DataEntrySet] = {
 
+    println("convert to DataEntries")
+
     val datasets: List[DataEntrySet] = dataFrames.map { ndf =>
       val df = ndf.data
       val flattenDF = flatten(df)
@@ -334,6 +334,7 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
                                                features : Set[String] = Set.empty[String],
                                                histgmCatLevelsCount: Option[Int] = None):DatasetFeatureStatisticsList = {
 
+    println("DataEntries to protobuf")
     val allDatasets = datasetProto
 
     val dfsList : List[DatasetFeatureStatistics]= datasets.zipWithIndex.map { a =>
@@ -406,6 +407,7 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
   }
 
   private[features] def getBasicNumStats(valueDF: DataFrame, colName: String, dsIndex:Int) : BasicNumStats = {
+    println(s"getBasicNumStats for ${ colName}")
 
     val spark = valueDF.sqlContext.sparkSession
     import spark.implicits._
@@ -540,6 +542,8 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
 
   private[features] def getNumericStats(entry: DataEntry, dsSize:Long, dsIndex :Int) : NumericStatistics = {
 
+    println(s"get numeric stats for ${ entry.featureName}")
+
     val valueDF: DataFrame   = entry.values
     val featureName:String   = entry.featureName
     val countDF : DataFrame  = entry.counts
@@ -576,6 +580,8 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
                                        dsSize : Long,
                                        dsIndex:Int,
                                        histgmCatLevelsCount: Option[Int]) : StringStatistics = {
+
+    println(s"getStringStats for ${ entry.featureName}")
 
     val valueDF: DataFrame    = entry.values
     val featureName:String    = entry.featureName
